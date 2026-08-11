@@ -1,0 +1,21 @@
+# Dependencies and build output
+**/node_modules/
+**/dist/
+**/dist-ssr/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Local Job Searcher data
+CV.md
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Logs and system files
+*.log
+.DS_Store
