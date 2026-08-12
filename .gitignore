@@ -8,6 +8,8 @@
 .env.*
 !.env.example
 
+# Database
+apps/api/data/
 # Local Job Searcher data
 CV.md
 *.db

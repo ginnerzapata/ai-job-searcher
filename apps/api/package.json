@@ -22,11 +22,15 @@
   "dependencies": {
     "@hono/node-server": "^2.1.0",
     "apify-client": "^2.25.0",
+    "better-sqlite3": "^13.0.3",
     "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.13.1"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.2.0",
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.23.11",
     "typescript": "^7.0.2"
   }
