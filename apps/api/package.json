@@ -21,6 +21,8 @@
   "type": "module",
   "dependencies": {
     "@hono/node-server": "^2.1.0",
+    "apify-client": "^2.25.0",
+    "dotenv": "^17.4.2",
     "hono": "^4.13.1"
   },
   "devDependencies": {
