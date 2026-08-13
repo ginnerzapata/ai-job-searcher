@@ -33,6 +33,13 @@ const fetcher = async (url: string): Promise<CvAvailability> => {
   return response.json();
 };
 
+function linesToItems(value: string) {
+  return value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function App() {
   const {
     data: cv,
@@ -48,6 +55,7 @@ function App() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isReplacingCv, setIsReplacingCv] = useState(false);
 
   async function uploadCv(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,6 +82,7 @@ function App() {
       }
 
       await mutate();
+      setIsReplacingCv(false);
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Upload failed.");
     } finally {
@@ -133,8 +142,8 @@ function App() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <Card className="w-full max-w-md">
+    <main className="min-h-screen p-6 md:p-10">
+      <Card className="mx-auto w-full max-w-6xl">
         <CardHeader>
           <CardTitle>Job Searcher setup</CardTitle>
           <CardDescription>
@@ -150,24 +159,34 @@ function App() {
             </p>
           ) : null}
 
-          {cv?.exists ? (
+          {cv?.exists && !isReplacingCv ? (
             <div className="space-y-4">
               <p>A local CV.md was found.</p>
 
-              <Button
-                disabled={isDeriving}
-                onClick={deriveProfile}
-                type="button"
-              >
-                {isDeriving ? "Deriving profile..." : "Derive profile"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  disabled={isDeriving}
+                  onClick={deriveProfile}
+                  type="button"
+                >
+                  {isDeriving ? "Deriving profile..." : "Use local CV"}
+                </Button>
+
+                <Button
+                  onClick={() => setIsReplacingCv(true)}
+                  type="button"
+                  variant="outline"
+                >
+                  Upload another CV
+                </Button>
+              </div>
 
               {deriveError ? (
                 <p className="text-destructive">{deriveError}</p>
               ) : null}
 
               {profile ? (
-                <div className="space-y-4">
+                <div className="grid gap-6 lg:grid-cols-2">
                   <label className="block">
                     <span className="mb-2 block">Full name</span>
                     <Input
@@ -188,7 +207,7 @@ function App() {
                     />
                   </label>
 
-                  <label className="block">
+                  <label className="block lg:col-span-2">
                     <span className="mb-2 block">Summary</span>
                     <textarea
                       className="min-h-28 w-full rounded-lg border border-input bg-transparent px-3 py-2"
@@ -199,15 +218,59 @@ function App() {
                     />
                   </label>
 
-                  <Button disabled={isSaving} onClick={saveProfile} type="button">
-                    {isSaving ? "Saving..." : "Save profile"}
-                  </Button>
+                  <label className="block">
+                    <span className="mb-2 block">Skills</span>
+                    <textarea
+                      className="min-h-28 w-full rounded-lg border border-input bg-transparent px-3 py-2"
+                      value={profile.skills.join("\n")}
+                      onChange={(event) =>
+                        setProfile({
+                          ...profile,
+                          skills: linesToItems(event.target.value),
+                        })
+                      }
+                    />
+                  </label>
 
-                  {saveError ? (
-                    <p className="text-destructive">{saveError}</p>
-                  ) : null}
+                  <label className="block">
+                    <span className="mb-2 block">Experience</span>
+                    <textarea
+                      className="min-h-36 w-full rounded-lg border border-input bg-transparent px-3 py-2"
+                      value={profile.experience.join("\n")}
+                      onChange={(event) =>
+                        setProfile({
+                          ...profile,
+                          experience: linesToItems(event.target.value),
+                        })
+                      }
+                    />
+                  </label>
 
-                  {isSaved ? <p className="text-green-600">Profile saved.</p> : null}
+                  <label className="block lg:col-span-2">
+                    <span className="mb-2 block">Education and certifications</span>
+                    <textarea
+                      className="min-h-28 w-full rounded-lg border border-input bg-transparent px-3 py-2"
+                      value={profile.education.join("\n")}
+                      onChange={(event) =>
+                        setProfile({
+                          ...profile,
+                          education: linesToItems(event.target.value),
+                        })
+                      }
+                    />
+                  </label>
+
+                  <div className="flex items-center gap-3 lg:col-span-2">
+                    <Button disabled={isSaving} onClick={saveProfile} type="button">
+                      {isSaving ? "Saving..." : "Save profile"}
+                    </Button>
+
+                    {saveError ? (
+                      <p className="text-destructive">{saveError}</p>
+                    ) : null}
+
+                    {isSaved ? <p className="text-green-600">Profile saved.</p> : null}
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -226,9 +289,21 @@ function App() {
                 <p className="text-destructive">{uploadError}</p>
               ) : null}
 
-              <Button disabled={isUploading} type="submit">
-                {isUploading ? "Uploading..." : "Use this CV"}
-              </Button>
+              <div className="flex gap-2">
+                <Button disabled={isUploading} type="submit">
+                  {isUploading ? "Uploading..." : "Use this CV"}
+                </Button>
+
+                {cv?.exists ? (
+                  <Button
+                    onClick={() => setIsReplacingCv(false)}
+                    type="button"
+                    variant="outline"
+                  >
+                    Keep local CV
+                  </Button>
+                ) : null}
+              </div>
             </form>
           )}
         </CardContent>

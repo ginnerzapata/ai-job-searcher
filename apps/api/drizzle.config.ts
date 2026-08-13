@@ -5,6 +5,6 @@ export default defineConfig({
   schema: "./src/db/schema.ts",
   out: "./drizzle",
   dbCredentials: {
-    url: "./data/job-searcher.db",
+    url: process.env.DATABASE_URL ?? "./data/job-searcher.db",
   },
 });

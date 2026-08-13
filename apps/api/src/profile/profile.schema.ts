@@ -12,4 +12,5 @@ export const jobSearcherProfileSchema = z.object({
     .array(z.string())
     .describe("Concise descriptions of education and certifications."),
 });
+
 export type JobSearcherProfile = z.infer<typeof jobSearcherProfileSchema>;

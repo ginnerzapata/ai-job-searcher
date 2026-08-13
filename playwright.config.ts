@@ -1,4 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "node:path";
+
+const testDataDirectory = path.resolve(".test-data");
 
 export default defineConfig({
   testDir: "./tests",
@@ -8,9 +11,16 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "pnpm --filter @job-searcher/api run dev",
+      command:
+        "pnpm --filter @job-searcher/api exec tsx ../../tests/prepare.ts && pnpm --filter @job-searcher/api run dev",
       port: 3001,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
+      env: {
+        ...process.env,
+        CV_PATH: path.join(testDataDirectory, "CV.md"),
+        DATABASE_URL: path.join(testDataDirectory, "job-searcher.db"),
+        PROFILE_DERIVER: "test",
+      },
     },
     {
       command: "pnpm --filter web run dev",
