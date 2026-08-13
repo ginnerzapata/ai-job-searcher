@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import useSWR from "swr";
 import {
   Card,
   CardContent,
@@ -6,18 +7,29 @@ import {
   CardHeader,
   CardTitle,
 } from "./components/ui/card";
-import useSWR from "swr";
-import { Input } from "./components/ui/input";
 import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
 
 type CvAvailability = {
   exists: boolean;
 };
+
+type JobSearcherProfile = {
+  fullName: string;
+  headline: string;
+  summary: string;
+  skills: string[];
+  experience: string[];
+  education: string[];
+};
+
 const fetcher = async (url: string): Promise<CvAvailability> => {
   const response = await fetch(url);
+
   if (!response.ok) {
     throw new Error(`API returned ${response.status}`);
   }
+
   return response.json();
 };
 
@@ -30,16 +42,24 @@ function App() {
   } = useSWR<CvAvailability>("/api/profile/cv", fetcher);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [profile, setProfile] = useState<JobSearcherProfile | null>(null);
+  const [deriveError, setDeriveError] = useState<string | null>(null);
+  const [isDeriving, setIsDeriving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
-  const uploadCv = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+  async function uploadCv(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formData = new FormData(event.currentTarget);
     const file = formData.get("file");
 
     if (!(file instanceof File) || file.size === 0) {
-      setUploadError("Choose a Markdown or PDF CV first");
+      setUploadError("Choose a Markdown or PDF CV first.");
       return;
     }
+
     setIsUploading(true);
     setUploadError(null);
 
@@ -48,64 +68,173 @@ function App() {
         method: "POST",
         body: formData,
       });
+
       if (!response.ok) {
         throw new Error(`Upload failed: ${response.status}`);
       }
+
       await mutate();
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : "Upload failed.");
     } finally {
       setIsUploading(false);
     }
-  };
+  }
+
+  async function deriveProfile() {
+    setIsDeriving(true);
+    setDeriveError(null);
+
+    try {
+      const response = await fetch("/api/profile/derive", { method: "POST" });
+
+      if (!response.ok) {
+        throw new Error(`Profile derivation failed: ${response.status}`);
+      }
+
+      setProfile(await response.json());
+    } catch (error) {
+      setDeriveError(
+        error instanceof Error ? error.message : "Profile derivation failed.",
+      );
+    } finally {
+      setIsDeriving(false);
+    }
+  }
+
+  async function saveProfile() {
+    if (!profile) {
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+    setIsSaved(false);
+
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(profile),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Profile save failed: ${response.status}`);
+      }
+
+      setIsSaved(true);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Profile save failed.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Local Application</CardTitle>
+          <CardTitle>Job Searcher setup</CardTitle>
           <CardDescription>
-            Brower-to-api healt check trought vite proxy
+            Provide a CV, then review the derived Job Searcher Profile.
           </CardDescription>
-          <CardContent>
-            {isCvLoading ? (
-              <p className="space-y-4">Cheking for a local CV</p>
-            ) : null}
-            {cvError ? (
-              <p className="text-destructive">
-                Could not check local CV: {cvError.message}
-              </p>
-            ) : null}
-            {cv?.exists ? (
-              <p>A local CV.md was found and can be used as your source</p>
-            ) : (
-              <form className="space-y-4" onSubmit={uploadCv}>
-                <label className="block">
-                  <span className="mb-2 block">Upload your Markdown CV</span>
-                  <Input
-                    name="file"
-                    type="file"
-                    accept=".md,text/markdown,.pdf,application/pdf"
-                  />
-                </label>
-
-                {uploadError ? (
-                  <p className="text-destructive">{uploadError}</p>
-                ) : null}
-
-                <Button
-                  className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
-                  disabled={isUploading}
-                  type="submit"
-                >
-                  {isUploading ? "Uploading..." : "Use this CV"}
-                </Button>
-              </form>
-            )}
-          </CardContent>
         </CardHeader>
+        <CardContent>
+          {isCvLoading ? <p>Checking for a local CV...</p> : null}
+
+          {cvError ? (
+            <p className="text-destructive">
+              Could not check local CV: {cvError.message}
+            </p>
+          ) : null}
+
+          {cv?.exists ? (
+            <div className="space-y-4">
+              <p>A local CV.md was found.</p>
+
+              <Button
+                disabled={isDeriving}
+                onClick={deriveProfile}
+                type="button"
+              >
+                {isDeriving ? "Deriving profile..." : "Derive profile"}
+              </Button>
+
+              {deriveError ? (
+                <p className="text-destructive">{deriveError}</p>
+              ) : null}
+
+              {profile ? (
+                <div className="space-y-4">
+                  <label className="block">
+                    <span className="mb-2 block">Full name</span>
+                    <Input
+                      value={profile.fullName}
+                      onChange={(event) =>
+                        setProfile({ ...profile, fullName: event.target.value })
+                      }
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block">Headline</span>
+                    <Input
+                      value={profile.headline}
+                      onChange={(event) =>
+                        setProfile({ ...profile, headline: event.target.value })
+                      }
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block">Summary</span>
+                    <textarea
+                      className="min-h-28 w-full rounded-lg border border-input bg-transparent px-3 py-2"
+                      value={profile.summary}
+                      onChange={(event) =>
+                        setProfile({ ...profile, summary: event.target.value })
+                      }
+                    />
+                  </label>
+
+                  <Button disabled={isSaving} onClick={saveProfile} type="button">
+                    {isSaving ? "Saving..." : "Save profile"}
+                  </Button>
+
+                  {saveError ? (
+                    <p className="text-destructive">{saveError}</p>
+                  ) : null}
+
+                  {isSaved ? <p className="text-green-600">Profile saved.</p> : null}
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <form className="space-y-4" onSubmit={uploadCv}>
+              <label className="block">
+                <span className="mb-2 block">Upload your CV</span>
+                <Input
+                  accept=".md,text/markdown,.pdf,application/pdf"
+                  name="file"
+                  type="file"
+                />
+              </label>
+
+              {uploadError ? (
+                <p className="text-destructive">{uploadError}</p>
+              ) : null}
+
+              <Button disabled={isUploading} type="submit">
+                {isUploading ? "Uploading..." : "Use this CV"}
+              </Button>
+            </form>
+          )}
+        </CardContent>
       </Card>
     </main>
   );
 }
+
 export default App;
