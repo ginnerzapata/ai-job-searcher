@@ -9,6 +9,7 @@ import {
 } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
+import { MatchCriteriaEditor } from "./components/MatchCriteriaEditor";
 
 type CvAvailability = {
   exists: boolean;
@@ -308,6 +309,8 @@ function App() {
           )}
         </CardContent>
       </Card>
+
+      {isSaved ? <MatchCriteriaEditor /> : null}
     </main>
   );
 }

@@ -11,3 +11,29 @@ export const jobSearcherProfiles = sqliteTable("job_searcher_profiles", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
+
+export const matchCriteria = sqliteTable("match_criteria", {
+  id: integer().primaryKey(),
+  jobSearcherProfileId: integer("job_searcher_profile_id")
+    .notNull()
+    .references(() => jobSearcherProfiles.id, { onDelete: "cascade" }),
+  name: text().notNull(),
+  isDefault: integer("is_default", { mode: "boolean" }).notNull(),
+  targetTitles: text("target_titles", { mode: "json" })
+    .$type<string[]>()
+    .notNull(),
+  locations: text({ mode: "json" }).$type<string[]>().notNull(),
+  remotePolicy: text("remote_policy").notNull(),
+  seniorities: text({ mode: "json" }).$type<string[]>().notNull(),
+  employmentTypes: text("employment_types", { mode: "json" })
+    .$type<string[]>()
+    .notNull(),
+  excludedKeywords: text("excluded_keywords", { mode: "json" })
+    .$type<string[]>()
+    .notNull(),
+  minimumCompensation: integer("minimum_compensation"),
+  compensationCurrency: text("compensation_currency"),
+  minimumFitGrade: text("minimum_fit_grade").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});

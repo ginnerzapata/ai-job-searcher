@@ -19,4 +19,23 @@ test("uploads, derives, edits, and saves a Job Searcher Profile", async ({
   await page.getByRole("button", { name: "Save profile" }).click();
 
   await expect(page.getByText("Profile saved.")).toBeVisible();
+
+  await page.getByLabel("Criteria name").fill("Frontend roles");
+  await page.getByLabel("Target titles").fill("Frontend Engineer");
+  await page.getByLabel("Use as the default for the next Search Run").check();
+  await page.getByRole("button", { name: "Save Match Criteria" }).click();
+
+  await expect(
+    page.getByRole("button", { name: "Frontend roles (default)" }),
+  ).toBeVisible();
+
+  const criteriaResponse = await page.request.get("/api/match-criteria");
+  await expect(criteriaResponse).toBeOK();
+  await expect(criteriaResponse.json()).resolves.toMatchObject([
+    {
+      name: "Frontend roles",
+      isDefault: true,
+      targetTitles: ["Frontend Engineer"],
+    },
+  ]);
 });
